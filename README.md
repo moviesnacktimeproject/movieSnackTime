@@ -6,6 +6,7 @@ It can be used without a server backend(just a static index.html file) to browse
 movieSnackTime allows you to easily stream content without installing any software on your device.
 
 ## Link to the static version of movieSnackTime
+https://moviesnacktimeproject.github.io/movieSnackTime/static/
 
 ## Installing movieSnackTime on your server
 
