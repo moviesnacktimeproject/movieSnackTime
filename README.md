@@ -1,4 +1,4 @@
-### movieSnackTime
+# movieSnackTime
 movieSnackTime is a website that allows you to view and browse the content of the Popcorn Time API.
 
 It can be used without a server backend(just a static index.html file) to browse the content, or with a server backend that uses a torrent plugin and ffmpeg to stream content. 
