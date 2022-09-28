@@ -279,7 +279,7 @@ function render_item(type, imdb_id){
 		htm += `
 <div class="row">
 	<div style="float:left;">
-		<img height="190" src="${details["images"]["poster"]}">
+		<img height="190" src="${details["images"]["poster"].replace('http://', '//')}">
 	</div>
 	<div style="float:left;margin:1em;">
 		<h2>${details["title"]}</h2>
@@ -423,7 +423,7 @@ function render_list(type, genre, sort, keywords){
 			htm += `
 <div style="float:left;width:12em;height:24em;">
 	<a href="#type=${type}&imdb_id=${item["imdb_id"]}">
-		<img height="190" src="${item["images"]["poster"]}">
+		<img height="190" src="${item["images"]["poster"].replace('http://', '//')}">
 		<h4>${item["title"]}</h4>
 		<h6 style="color:rgb(70,70,70);">${item["year"]}</h6>
 	</a>
