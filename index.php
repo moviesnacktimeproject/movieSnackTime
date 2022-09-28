@@ -98,7 +98,7 @@ function get_live_stream_link($rtorrent_base_path){
 	global $public_link_downloaded_folder;
 	$filename = basename($rtorrent_base_path);
 	if(is_file($rtorrent_base_path)){
-		return('/live_stream.php?f='.$public_link_downloaded_folder.rawurlencode($filename));
+		return('live_stream.php?f='.$public_link_downloaded_folder.rawurlencode($filename));
 	}else{
 		$files = array();
 		$sortedfiles = array();
@@ -109,7 +109,7 @@ function get_live_stream_link($rtorrent_base_path){
 		}
 		arsort($sortedfiles);
 		$sortedfiles = array_keys($sortedfiles);
-		return('/live_stream.php?f='.$public_link_downloaded_folder.rawurlencode($filename.'/'.$sortedfiles[0]));
+		return('live_stream.php?f='.$public_link_downloaded_folder.rawurlencode($filename.'/'.$sortedfiles[0]));
 	}
 }
 
