@@ -17,6 +17,7 @@ sudo apt-get -y install apache2 php libapache2-mod-php git rtorrent tmux ffmpeg
 echo download popcorn-web to public web folder
 sudo chmod 777 /var/www/html
 cd /var/www/html
+mkdir /var/www/html/downloads/
 
 git clone https://github.com/moviesnacktimeproject/movieSnackTime
 cd movieSnackTime
