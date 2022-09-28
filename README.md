@@ -1,16 +1,32 @@
-### Hi there 👋
+### movieSnackTime
+movieSnackTime is a website that allows you to view and browse the content of the Popcorn Time API.
 
-<!--
-**moviesnacktime/movieSnackTime** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+It can be used without a server backend(just a static index.html file) to browse the content, or with a server backend that uses a torrent plugin and ffmpeg to stream content. 
 
-Here are some ideas to get you started:
+movieSnackTime allows you to easily stream content without installing any software on your device.
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## Link to the static version of movieSnackTime
+
+## Installing movieSnackTime on your server
+
+```bash
+echo install dependencies
+sudo apt-get -y install apache2 php libapache2-mod-php git rtorrent tmux ffmpeg
+
+echo download popcorn-web to public web folder
+sudo chmod 777 /var/www/html
+cd /var/www/html
+
+git clone https://github.com/moviesnacktimeproject/movieSnackTime
+cd movieSnackTime
+
+echo make the converted video folder avalible on the web
+mkdir /tmp/videos
+ln -s /tmp/videos videos
+
+echo setup rtorrent config
+cp -a .rtorrent.rc ~/.rtorrent.rc
+
+echo run rtorrent in tmux 
+tmux new-session rtorrent
+```
