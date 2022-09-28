@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+	<meta charset="UTF-8">
+	<title>MovieSnackTime</title>
+<style>
+body{
+	background-color:rgb(23,24,27);
+	color:white;
+	font-family: Arial;
+}
+.row::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+a:link, a:visited{
+	color:white;
+}
+.filter{
+	float:right;
+}
+.synopsis{
+max-width:70em;
+}
+.modal {
+  display: block; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+.modal-content {
+  background-color: #525252;
+  margin: 15% auto;
+  padding: 20px;
+	border-radius: 10px;
+  width: 80%;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/natsort@latest/index.min.js"></script>
+<script name="static_backend" src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+<script name="static_backend">
+//Backend: The backend implements the get_torrent(link) function and render_active_list() and specifies witch cors_proxy to use
+/*
+the static backend implements torrent fetching with WebTorrent technology.
+*/
+
+	const cors_proxy = 'https://api.allorigins.win/raw';
+      const client = new WebTorrent()
+
+      client.on('error', function (err) {
+        console.error('ERROR: ' + err.message)
+      })
+
+
+
+function onTorrent (torrent) {
+	no_meta = false;
+	log('Got torrent metadata!')
+	log(
+	  'Torrent info hash: ' + torrent.infoHash + ' ' +
+	  '<a href="' + torrent.magnetURI + '" target="_blank">[Magnet URI]</a> ' +
+	  '<a href="' + torrent.torrentFileBlobURL + '" target="_blank" download="' + torrent.name + '.torrent">[Download .torrent]</a>'
+	)
+
+	// Print out progress every 5 seconds
+	const interval = setInterval(function () {
+	  log('Progress: ' + (torrent.progress * 100).toFixed(1) + '%')
+	}, 5000)
+
+	torrent.on('done', function () {
+	  log('Progress: 100%')
+	  clearInterval(interval)
+	})
+
+	// Render all files into to the page
+	torrent.files.forEach(function (file) {
+	  file.appendTo('.log')
+	  log('(Blob URLs only work if the file is loaded from a server. "http//localhost" works. "file://" does not.)')
+	  file.getBlobURL(function (err, url) {
+		if (err) return log(err.message)
+		log('File done.')
+		log('<a href="' + url + '">Download full file: ' + file.name + '</a>')
+	  })
+	})
+}
+
+function log(str){
+	const p = document.createElement('p')
+	p.innerHTML = str
+	document.querySelector('.log').appendChild(p)
+}
+function render_active_list(){
+	var torrents = "";
+	client.torrents.forEach(torrent => {
+		torrents += `<p>infoHash: ${torrent.infoHash}</p>`;
+	});
+    document.body.innerHTML = `<h2>Active Torrents</h2>
+    <div>${torrents}</div>`;
+
+}
+
+function get_torrent(link){
+    document.body.innerHTML = `<h2>Torrent Log</h2>
+    <div class="log"></div>`;
+	log("adding torrent: "+link)
+	log("wating for someone to download from, this may take a long time, please wait");
+	client.add(link, {announce:["wss://tracker.openwebtorrent.com"]},onTorrent)
+}
+function ask_about_method(link){
+
+    document.body.innerHTML += `<div class="modal"><div class="modal-content">
+<p><a href="#link=${encodeURIComponent(link)}">Get torrent using WebTorrent technology</a></p>
+<p>Download using a torrent application: <a href="${link}">[Magnet URI]</a></p>
+<p><a href="" onclick="render();return false;">[Close]</a></p>
+</div></div>`;
+	return;
+}
+
+000;</script>
+
+<script>
+
+	const AppName = document.title;
+	if('serviceWorker' in navigator){
+		//navigator.serviceWorker.register('service_worker_v1.js');
+	}
+	var render_update = false;
+const search_types = {
+	"movies":{
+			"genres":[
+		"",
+		"All",
+		"Action",
+		"Adventure",
+		"Animation",
+		"Biography",
+		"Comedy",
+		"Crime",
+		"Documentary",
+		"Drama",
+		"Family",
+		"Fantasy",
+		"Film-Noir",
+		"History",
+		"Horror",
+		"Music",
+		"Musical",
+		"Mystery",
+		"Romance",
+		"Sci-Fi",
+		"Short",
+		"Sport",
+		"Thriller",
+		"War",
+		"Western"
+	],
+	"sorts":[
+		"",
+		"trending",
+		"popularity",
+		"last added",
+		"year",
+		"title",
+		"rating"
+	]
+	},
+"shows":{
+			"genres":[
+		"",
+		"All",
+		"Action",
+		"Adventure",
+		"Animation",
+		"Children",
+		"Comedy",
+		"Crime",
+		"Documentary",
+		"Drama",
+		"Family",
+		"Fantasy",
+		"Game Show",
+		"Home and Garden",
+		"Horror",
+		"Mini Series",
+		"Mystery",
+		"News",
+		"Reality",
+		"Romance",
+		"Science Fiction",
+		"Soap",
+		"Special Interest",
+		"Sport",
+		"Suspense",
+		"Talk Show",
+		"Thriller",
+		"Western"
+	],
+	"sorts":[
+		"",
+		"trending",
+		"popularity",
+		"updated",
+		"year",
+		"name",
+		"rating"
+	]
+	}
+}
+function search(e){
+	var hsh = ['type='+active_type];
+	var genre = document.getElementById('form_genre').value;
+	var sort = document.getElementById('form_sort').value;
+	var keywords = document.getElementById('form_keywords').value;
+	if(genre != ""){
+		hsh.push('genre='+encodeURIComponent(genre));
+	}
+	if(sort != ""){
+		hsh.push('sort='+encodeURIComponent(sort));
+	}
+	if(keywords != ""){
+		hsh.push('keywords='+encodeURIComponent(keywords));
+	}
+
+	if(keywords.length == 40){//if the keyword is exactly 40 characters long we asume it is a infohash
+		keywords = 'magnet:?xt=urn:btih:'.keywords;
+	}
+	if(keywords.substr(0, 7) == 'magnet:'){
+		document.location.hash = "#link="+encodeURIComponent(keywords);
+	}else{
+		document.location.hash = "#"+hsh.join('&');
+	}
+}
+function render_top_menu(type){
+
+	keywords = '';
+	var htm = `
+	<div>
+		<a href="#type=movies">Movies</a>
+		<a href="#type=shows">Shows</a>
+		<a href="#list_active">list active</a>`;
+	if(type != null){
+		const search_types_show = search_types[type];
+		htm += `<form class="filter">
+			<select id="form_genre" onchange="search(this)">`;
+	search_types_show.genres.forEach(genre => {
+				htm += `<option ${((genre == active_genre)?'selected':'')} value="${genre}">${genre}</option>`;
+		});
+		htm += `</select>
+			<select id="form_sort" onchange="search(this)">`;
+	search_types_show.sorts.forEach(sort => {
+				htm += `<option ${(sort == active_sort)?'selected':''} value="${sort}">${sort}</option>`;
+		});
+		htm += `</select>
+		</form>
+		<form onsubmit="search(this);return false;" class="filter">
+			<input placeholder="search..." type="text" id="form_keywords" value="${active_keywords}">
+		</form>`;
+	}
+	htm += `
+	</div>
+`;
+	return htm;
+}
+
+function render_item(type, imdb_id){
+	get_api_file(type.slice(0, -1)+'/'+imdb_id, function(details){
+		document.title = AppName+": "+details["title"]+" ("+details["year"]+")";
+		stat = "";
+		if(details["status"]){
+			stat = details["status"]+" • ";
+		}
+		htm = render_top_menu(type);
+		htm += `
+<div class="row">
+	<div style="float:left;">
+		<img height="190" src="${details["images"]["poster"]}">
+	</div>
+	<div style="float:left;margin:1em;">
+		<h2>${details["title"]}</h2>
+		<h5>${details["year"]} • ${details["runtime"]} min • ${stat}${details["genres"].join(", ")} • ${details["rating"]["percentage"]/10}/10
+			<a target="_blank" rel="noopener noreferrer" href="https://www.rottentomatoes.com/search?search=${encodeURIComponent(details["title"])}">🍅</a>
+			<a target="_blank" rel="noopener noreferrer" href="https://www.imdb.com/title/${encodeURIComponent(details["imdb_id"])}">imdb</a>
+</h5>
+		<p class="synopsis">${details["synopsis"]}</p>
+	</div>
+</div>
+<div class="row">
+`;
+if(details["episodes"]){
+		seasons = [];
+		details["episodes"].forEach(episode => {
+			if(!seasons[episode["season"]]){
+				seasons[episode["season"]] = [];
+			}
+			seasons[episode["season"]].push(episode);
+		});
+		seasons = Object.fromEntries(Object.entries(seasons).sort())
+		for(season in seasons){
+			episodes = seasons[season];
+			season_formats = {};
+
+			episodes = episodes.sort(function ($a,$b){return ($a["episode"]-$b["episode"]);});
+			episodes.forEach(episode => {
+				for(tid in episode["torrents"]){
+					season_formats[tid] = tid;
+				}
+			});
+			season_formats = Object.fromEntries(Object.entries(season_formats).sort(natsort()))
+			htm += `<h5>Season ${season}</h5>
+		<table>`;
+			episodes.forEach(episode => {
+			htm += `<tr>
+				<td>${episode["episode"]}</td>
+				<td>${episode["title"]}</td>
+				<td>${(new Date(episode["first_aired"]*1000)).toLocaleDateString()}</td>
+				<td>`;
+			for(format in season_formats){
+				htm += "<td>";
+				if(episode["torrents"][format]){
+					htm += draw_torrent_link(episode["torrents"][format]['url'], format, episode["torrents"][format]);
+				}
+				htm += "</td>";
+			}
+			htm += "</tr>";
+		});
+		htm += "</table>";
+		}
+
+}else if(details["torrents"]["en"]){
+	torrents = Object.fromEntries(Object.entries(details["torrents"]["en"]).sort(natsort()))
+	for(tid in torrents){
+			htm += draw_torrent_link(torrents[tid]["url"], tid, torrents[tid]);
+	}
+}
+htm += `
+</div>
+`;
+		document.body.innerHTML = htm;
+	});
+}
+function draw_torrent_link(magnet, tid, tordat){
+	var title = "";
+	var enc = "";
+	var check = "";
+	var search = false;
+	if(tordat.title){
+		search = tordat.title.toLowerCase();
+		if(search.indexOf('264') !== -1){
+			enc = "4";
+		}else if(search.indexOf('265') !== -1){
+			enc = "5";
+		}else if(search.indexOf('hevc') !== -1){
+			enc = "5";
+		}else if(search.indexOf('xvid') !== -1){
+			enc = "x";
+		}
+		if(search.indexOf('hdcam') !== -1){
+			enc += "cam";
+		}else if(search.indexOf('hdts') !== -1){
+			enc += "ts";
+		}
+	}
+	var size = "";
+	if(tordat.filesize){
+			size = " "+tordat.filesize;
+	}
+	var oncl = "";
+	if(typeof(ask_about_method) != 'undefined'){
+		oncl = `onclick="ask_about_method('${magnet}');return false;"`
+	}
+
+	return `<a ${oncl} href="#link=${encodeURIComponent(magnet)}" ${title}>${tid}${enc}${check}</a>${size} `;
+}
+const date = new Date();
+const cache_date = date.getFullYear()+'-'+date.getMonth()+'-'+date.getDate();
+
+function get_api_file(path, cb){
+	apiurl = 'http://popcorn-time.ga/'+path;
+
+	cache_key = cache_date+'_'+path;
+
+	if(cached_data = localStorage.getItem(cache_key)){
+
+		cb(JSON.parse(cached_data));
+		return;
+	}
+	fetch(`${cors_proxy}?url=${encodeURIComponent(apiurl)}`)
+		.then(response => {
+			if (response) return response.text()
+			throw new Error('Network response was not ok.')
+		})
+		.then(data => {
+			localStorage.setItem(cache_key, data)
+			cb(JSON.parse(data));
+		});
+}
+function render_list(type, genre, sort, keywords){
+	document.title = AppName+": "+type;
+
+	var hsh = [];
+	if(genre){
+		hsh.push('genre='+encodeURIComponent(genre));
+	}
+	if(sort){
+		hsh.push('sort='+encodeURIComponent(sort));
+	}
+	if(keywords){
+		hsh.push('keywords='+encodeURIComponent(keywords));
+	}
+	var seach_str = "";
+	if(hsh.length != 0){
+		seach_str = "?"+hsh.join('&');
+	}
+	get_api_file(type+'/1'+seach_str, function(items){
+		var htm = render_top_menu(type);
+		items.forEach(item => {
+			htm += `
+<div style="float:left;width:12em;height:24em;">
+	<a href="#type=${type}&imdb_id=${item["imdb_id"]}">
+		<img height="190" src="${item["images"]["poster"]}">
+		<h4>${item["title"]}</h4>
+		<h6 style="color:rgb(70,70,70);">${item["year"]}</h6>
+	</a>
+</div>`;
+		});
+
+		//FIXME: add load more titles function
+		document.body.innerHTML = htm + `
+<div style="float:left;width:12em;height:24em;">
+<p>
+<a href="">Load more entrys</a>
+</p>
+</div>
+
+`;
+	});
+}
+function getQueryVariable(variable) {
+    var query = window.location.hash.substring(1);
+    var vars = query.split('&');
+    for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split('=');
+        if (decodeURIComponent(pair[0]) == variable) {
+            return decodeURIComponent(pair[1]);
+        }
+    }
+	return null;
+}
+var active_type;
+var active_genre;
+var active_sort;
+var active_keywords;
+
+function render(){
+	clearTimeout(render_update);
+	active_type = getQueryVariable('type');
+	active_genre = getQueryVariable('genre');
+	active_sort = getQueryVariable('sort');
+	active_keywords = getQueryVariable('keywords');
+	if(!active_keywords){
+		active_keywords = "";
+	}
+	imdb_id = getQueryVariable('imdb_id');
+	link = getQueryVariable('link');
+	if(link){
+		get_torrent(link);
+	}else{
+		document.body.innerHTML = "Loading...";
+		if(!active_type){
+			active_type = 'movies';
+		}
+		if(imdb_id){
+			render_item(active_type, imdb_id);
+		}else if(document.location.hash == "#list_active"){
+			document.title = AppName+": list active torrents";
+			render_active_list();
+		}else{
+			render_list(active_type, active_genre, active_sort, active_keywords);
+		}
+	}
+}
+
+window.addEventListener('hashchange', render, false);
+</script>
+<body>
+</body>
+<script>
+	render();
+</script>
+</html
