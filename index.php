@@ -5,11 +5,14 @@ function get_torrent_status($infohash){
 
 	$bytes_done = get_rtorrent_stat('d.bytes_done', $infohash);
 	$tot_size = get_rtorrent_stat('d.size_bytes', $infohash);
-
+	$perc = 0;
+	if($tot_size != 0){
+		$perc = $bytes_done/$tot_size;
+	}
 	$ret = array(
 		'bytes_done' => $bytes_done,
 		'tot_size' => $tot_size,
-		'percent' =>  $bytes_done/$tot_size,
+		'percent' =>  $perc,
 		'tot_size_Mb' =>  intval($tot_size/(1024*1024))
 	);
 	return $ret;
@@ -38,6 +41,9 @@ function get_rtorrent_dat($stat, $infohash = '', $arg2 = ''){
 function get_rtorrent_stat($stat, $infohash){
 	$ret = get_rtorrent_dat($stat, $infohash);
 	$number = explode('i8>', $ret);
+	if(!isset($number[1])){
+		return false;
+	}
 	$response_nr = intval($number[1]);
 	return $response_nr;
 }
@@ -58,6 +64,14 @@ function get_rtorrent_strs($stat, $arg1 = '', $index = NULL){
 	return $ret[$index];
 }
 
+function clean_magnet($magnet){
+	$parms = explode('&', $magnet);
+	$parms2 = explode('&amp;', $magnet);
+	if(count($parms) == count($parms2)){
+		return htmlspecialchars_decode($magnet);
+	}
+	return $magnet;
+}
 function get_hash_from_magnet($magnet){
 	$query = parse_url($magnet, PHP_URL_QUERY);
 	$parms = explode('&', $query);
@@ -105,11 +119,11 @@ function get_live_stream_link($rtorrent_base_path){
 		$downloaded_folder_len = strlen($rtorrent_base_path);
 		getDirContents($rtorrent_base_path, $files);
 		foreach ($files as $file) {
-			$sortedfiles[substr($file, $downloaded_folder_len)] = filemtime($file);
+			$sortedfiles[substr($file, $downloaded_folder_len)] = filesize($file);
 		}
 		arsort($sortedfiles);
 		$sortedfiles = array_keys($sortedfiles);
-		return('live_stream.php?f='.$public_link_downloaded_folder.rawurlencode($filename.'/'.$sortedfiles[0]));
+		return('live_stream.php?f='.$public_link_downloaded_folder.rawurlencode($filename.$sortedfiles[0]));
 	}
 }
 
@@ -117,28 +131,55 @@ if(isset($_GET['add_torrent'])){
 	//Only allow magnet links to stop command injections in to rtorrent
 	$ret = array('body' => '');
 	if(substr($_GET['add_torrent'], 0, 8) == 'magnet:?'){
+
 		//we need to extract the infohash as that is what rtorrent uses to identify torrents
 		$ret['infohash'] = get_hash_from_magnet($_GET['add_torrent']);
 
+		//Clean the stuff we send to rtorrent. Sometimes rtorrent just locks up if you send it certain urls(probably due to some strange string enoding that rtorrent uses )
+		$_GET['add_torrent'] = 'magnet:?xt=urn:btih:'.$ret['infohash'].'&tr='.rawurlencode('udp://tracker.opentrackr.org:1337/announce');
+
 		$infohashes = get_rtorrent_strs('download_list');
 
-		if(!in_array($ret['infohash'], $infohashes)){
+		$hashes = array();
+		$hash_meta_file = '/tmp/hash2file.json';
+		if(!file_exists($hash_meta_file)){
+			file_put_contents($hash_meta_file, json_encode($hashes));
+		}
+		$hashes = json_decode(file_get_contents($hash_meta_file), true);
+		$rtorrent_base_path = null;
+		$already_downloaded = false;
+		if(isset($hashes[$ret['infohash']])){
+			if(file_exists($hashes[$ret['infohash']]['base_path'])){
+				$already_downloaded = true;
+				$rtorrent_base_path = $hashes[$ret['infohash']]['base_path'];
+				$ret['name'] = $hashes[$ret['infohash']]['name'];
+			}
+		}
+
+		if(!$already_downloaded && !in_array($ret['infohash'], $infohashes)){
 			$ret['new_torrent'] = true;
-			$ret['body'] .= "<p>adding torrent to rtorrent...</p>";
+			$ret['body'] .= "<p>adding torrent ".$ret['infohash']." to rtorrent...</p>";
 			get_rtorrent_dat('load.start_verbose', '', $_GET['add_torrent']);
 			sleep(4);//Give rtorrent some time to find the torrent
 		}else{
 			$ret['new_torrent'] = false;
 		}
 
-		$ret['name'] = get_rtorrent_strs('d.name', $ret['infohash'], 0);
+		if(!$already_downloaded){
+			$ret['name'] = get_rtorrent_strs('d.name', $ret['infohash'], 0);
+			$stats = get_torrent_status($ret['infohash']);
+			if($stats['percent'] == 1){
+				$rtorrent_base_path = get_rtorrent_strs('d.base_path', $ret['infohash'], 0);
+				$hashes[$ret['infohash']] = array('name' => $ret['name'], 'base_path' => $rtorrent_base_path);
+				file_put_contents($hash_meta_file, json_encode($hashes));
+				$already_downloaded = true;
+			}
+		}
 
-		$stats = get_torrent_status($ret['infohash']);
 		//torrent is done
-		if($stats['percent'] == 1){
+		if($already_downloaded){
 			$ret['done'] = true;
 			$ret['body'] .= "<p>torrent is done, start streaming now</p>";
-			$rtorrent_base_path = get_rtorrent_strs('d.base_path', $ret['infohash'], 0);
 			$live_stream_link = get_live_stream_link($rtorrent_base_path);
 			$ret['body'] .= '<a href="'.$live_stream_link.'">'.$ret['name'].'</a>';
 
