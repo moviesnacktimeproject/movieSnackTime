@@ -1,5 +1,9 @@
 //this is the script that interfaces the browser to the backend server
-const cors_proxy = 'cors_proxy.php';
+Cors = [
+	function(apiurl){
+		return `cors_proxy.php?url=${encodeURIComponent(apiurl)}`;
+	}
+];
 function get_torrent(link){
 	htm = render_top_menu(active_type);
     document.body.innerHTML = htm+`<h2>Downloading torrent</h2>`;
