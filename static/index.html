@@ -50,7 +50,14 @@ max-width:70em;
 the static backend implements torrent fetching with WebTorrent technology.
 */
 
-	const cors_proxy = 'https://api.allorigins.win/raw';
+	Cors = [
+		function(apiurl){
+			return `https://api.codetabs.com/v1/proxy/?quest=${apiurl}`;
+		},
+		function(apiurl){
+			return `https://api.allorigins.win/raw?url=${encodeURIComponent(apiurl)}`;
+		}
+	];
       const client = new WebTorrent()
 
       client.on('error', function (err) {
@@ -126,6 +133,7 @@ function ask_about_method(link){
 
 <script>
 
+	var Active_cors_id = 0;
 	const AppName = document.title;
 	if('serviceWorker' in navigator){
 		//navigator.serviceWorker.register('service_worker_v1.js');
@@ -380,6 +388,15 @@ function draw_torrent_link(magnet, tid, tordat){
 const date = new Date();
 const cache_date = date.getFullYear()+'-'+date.getMonth()+'-'+date.getDate();
 
+//Clear old cache
+for(x=0;x<localStorage.length;x++){
+	key=localStorage.key(x);
+	if(key.search(cache_date) == -1){
+		localStorage.removeItem(key);
+		x=0;
+	}
+}
+
 function get_api_file(path, cb){
 	apiurl = 'http://popcorn-time.ga/'+path;
 
@@ -390,14 +407,32 @@ function get_api_file(path, cb){
 		cb(JSON.parse(cached_data));
 		return;
 	}
-	fetch(`${cors_proxy}?url=${encodeURIComponent(apiurl)}`)
+	get_json_url(apiurl, cache_key, cb, Active_cors_id);
+}
+
+//Tries diffrent cors proxys to reach the API
+function get_json_url(apiurl, cache_key, cb, cors_id){
+	if(typeof(Cors[cors_id]) == 'undefined'){
+		document.body.innerHTML += "could not get api data from any cors proxy";
+		return;
+	}
+	Active_cors_id = cors_id;
+	var url = Cors[cors_id](apiurl);
+	fetch(url)
 		.then(response => {
 			if (response) return response.text()
 			throw new Error('Network response was not ok.')
 		})
 		.then(data => {
-			localStorage.setItem(cache_key, data)
-			cb(JSON.parse(data));
+			var dat = JSON.parse(data);
+			if(dat){
+				localStorage.setItem(cache_key, data)
+				cb(JSON.parse(data));
+			}else{
+				throw new Error('data returned from proxy was not json.')
+			}
+		}).catch(error => {
+			get_json_url(apiurl, cache_key, cb, cors_id+1);
 		});
 }
 function render_list(type, genre, sort, keywords){
@@ -493,4 +528,4 @@ window.addEventListener('hashchange', render, false);
 <script>
 	render();
 </script>
-</html
+</html>
