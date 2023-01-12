@@ -1,11 +1,14 @@
 # movieSnackTime
 movieSnackTime is a website that allows you to view and browse the content of the Popcorn Time API.
 
-It can be used without a server backend(just a static index.html file) to browse the content, or with a server backend that uses a torrent plugin and ffmpeg to stream content. 
+It can be used without a server backend(just a static index.html file) to browse the content using webtorrent, or with a server backend that uses rtorrent and ffmpeg to stream content. 
 
 movieSnackTime allows you to easily stream content without installing any software on your device.
 
-## Link to the static version of movieSnackTime
+## Screenshot
+![moviesnacktime_screenshot](moviesnacktime_screenshot.png)
+
+## Try the static version of movieSnackTime
 https://moviesnacktimeproject.github.io/movieSnackTime/static/
 
 ## Installing movieSnackTime on your server
