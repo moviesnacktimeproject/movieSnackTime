@@ -2,6 +2,7 @@
 <html>
 	<meta charset="UTF-8">
 	<title>MovieSnackTime</title>
+	<link rel="icon" href="data:,">
 <style>
 body{
 	background-color:rgb(23,24,27);
@@ -220,6 +221,7 @@ const search_types = {
 	]
 	}
 }
+var onlyhex = RegExp('^[a-zA-Z0-9]+$');
 function search(e){
 	var hsh = ['type='+active_type];
 	var genre = document.getElementById('form_genre').value;
@@ -235,8 +237,8 @@ function search(e){
 		hsh.push('keywords='+encodeURIComponent(keywords));
 	}
 
-	if(keywords.length == 40){//if the keyword is exactly 40 characters long we asume it is a infohash
-		keywords = 'magnet:?xt=urn:btih:'.keywords;
+	if(keywords.length == 40 && onlyhex.test(keywords)){//if the keyword is exactly 40 characters long we asume it is a infohash
+		keywords = 'magnet:?xt=urn:btih:'+keywords;
 	}
 	if(keywords.substr(0, 7) == 'magnet:'){
 		document.location.hash = "#link="+encodeURIComponent(keywords);
