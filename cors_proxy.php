@@ -1,7 +1,8 @@
 <?php
 $ok_domains = array(
 	'popcorn-time.ga',
-	'shows.cf'
+	'shows.cf',
+	'fusme.link'
 );
 $get_url = NULL;
 if(isset($_GET['url'])){
